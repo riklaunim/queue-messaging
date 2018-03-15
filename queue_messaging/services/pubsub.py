@@ -37,6 +37,19 @@ retry = tenacity.retry(
 )
 
 
+class Client:
+    def __init__(self, client_kwargs):
+        self.client_kwargs = client_kwargs
+
+    @property
+    def publisher(self):
+        return pubsub.PublisherClient(**self.client_kwargs)
+
+    @property
+    def subscriber(self):
+        return pubsub.SubscriberClient(**self.client_kwargs)
+
+
 class PubSub:
     def __init__(self,
                  topic_name,
@@ -50,7 +63,7 @@ class PubSub:
 
     @cached_property
     def topic(self):
-        return self.client.topic(self.topic_name)
+        return self.client.subscriber.topic(self.topic_name)
 
     @cached_property
     def subscription(self):
@@ -60,9 +73,9 @@ class PubSub:
     def client(self):
         if self.pubsub_emulator_host:
             with utils.EnvironmentContext('PUBSUB_EMULATOR_HOST', self.pubsub_emulator_host):
-                return pubsub.Client(_http=httplib2.Http(), _use_grpc=self.use_grpc)
+                return Client({'_http': httplib2.Http(), '_use_grpc': self.use_grpc})
         else:
-            return pubsub.Client(_use_grpc=self.use_grpc)
+            return Client({'_use_grpc': self.use_grpc})
 
     @retry
     def send(self, message: str, **attributes):

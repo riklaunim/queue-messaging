@@ -92,7 +92,7 @@ def topic_mock(pubsub_client_mock):
 
 @pytest.fixture
 def pubsub_client_mock():
-    with mock.patch('google.cloud.pubsub.Client') as client:
+    with mock.patch('google.cloud.pubsub.SubscriberClient') as client:
         yield client
 
 

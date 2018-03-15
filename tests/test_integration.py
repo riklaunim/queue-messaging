@@ -23,7 +23,7 @@ class FancyEvent(queue_messaging.Model):
 
 @pytest.fixture()
 def pubsub_client_mock():
-    with mock.patch('google.cloud.pubsub.Client') as client:
+    with mock.patch('google.cloud.pubsub.SubscriberClient') as client:
         yield client
 
 
