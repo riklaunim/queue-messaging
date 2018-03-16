@@ -76,8 +76,6 @@ class PubSub:
     def client(self):
         if self.pubsub_emulator_host:
             with utils.EnvironmentContext('PUBSUB_EMULATOR_HOST', self.pubsub_emulator_host):
-                from google.cloud import environment_vars
-                environment_vars.PUBSUB_EMULATOR = self.pubsub_emulator_host
                 return Client()
         else:
             return Client()
