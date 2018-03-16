@@ -1,6 +1,6 @@
-import httplib2
 import tenacity
 from cached_property import cached_property
+from google.auth import credentials
 from google.cloud import exceptions as google_cloud_exceptions
 from google.cloud import pubsub
 from google.gax import errors
@@ -38,13 +38,20 @@ retry = tenacity.retry(
 
 
 class Client:
+    def __init__(self, creds=None):
+        self.kwargs = {}
+        if creds:
+            self.kwargs = {
+                'credentials': creds
+            }
+
     @property
     def publisher(self):
-        return pubsub.PublisherClient()
+        return pubsub.PublisherClient(**self.kwargs)
 
     @property
     def subscriber(self):
-        return pubsub.SubscriberClient()
+        return pubsub.SubscriberClient(**self.kwargs)
 
 
 class PubSub:
@@ -70,7 +77,9 @@ class PubSub:
     def client(self):
         if self.pubsub_emulator_host:
             with utils.EnvironmentContext('PUBSUB_EMULATOR_HOST', self.pubsub_emulator_host):
-                return Client()
+                from google.cloud import environment_vars
+                environment_vars.PUBSUB_EMULATOR = self.pubsub_emulator_host
+                return Client(creds=credentials.AnonymousCredentials())
         else:
             return Client()
 
