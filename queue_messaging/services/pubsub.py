@@ -1,6 +1,5 @@
 import tenacity
 from cached_property import cached_property
-from google.auth import credentials
 from google.cloud import exceptions as google_cloud_exceptions
 from google.cloud import pubsub
 from google.gax import errors
@@ -79,7 +78,7 @@ class PubSub:
             with utils.EnvironmentContext('PUBSUB_EMULATOR_HOST', self.pubsub_emulator_host):
                 from google.cloud import environment_vars
                 environment_vars.PUBSUB_EMULATOR = self.pubsub_emulator_host
-                return Client(creds=credentials.AnonymousCredentials())
+                return Client()
         else:
             return Client()
 
