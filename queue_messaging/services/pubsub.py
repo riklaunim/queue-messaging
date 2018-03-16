@@ -85,15 +85,18 @@ class PubSub:
     @retry
     def receive(self) -> structures.PulledMessage:
         try:
-            result = self.subscription.pull(max_messages=1, return_immediately=True)
-            if result:
-                ack_id, message = result.pop()
-                return structures.PulledMessage(
-                    ack_id=ack_id, data=message.data.decode('utf-8'),
-                    message_id=message.message_id, attributes=message.attributes)
+            return self.subscription.open(process_message).result()
         except google_cloud_exceptions.NotFound as e:
             raise exceptions.PubSubError('Error while pulling a message.', errors=e)
 
     @retry
     def acknowledge(self, msg_id):
         return self.subscription.acknowledge([msg_id])
+
+
+def process_message(message):
+    if message:
+        ack_id, message = message.pop()
+        return structures.PulledMessage(
+            ack_id=ack_id, data=message.data.decode('utf-8'),
+            message_id=message.message_id, attributes=message.attributes)
