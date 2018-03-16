@@ -28,12 +28,18 @@ def pubsub_client_mock():
 
 
 @pytest.fixture()
+def pubsub_publisher_client_mock():
+    with mock.patch('google.cloud.pubsub.PublisherClient') as client:
+        yield client
+
+
+@pytest.fixture()
 def header_timestamp_mock():
     with mock.patch('queue_messaging.data.encoding.get_now_with_utc_timezone') as now_mock:
         yield now_mock
 
 
-def test_send(header_timestamp_mock, pubsub_client_mock):
+def test_send(header_timestamp_mock, pubsub_publisher_client_mock):
     messaging = queue_messaging.Messaging.create_from_dict({
         'TOPIC': 'test-topic',
     })
@@ -46,10 +52,9 @@ def test_send(header_timestamp_mock, pubsub_client_mock):
 
     messaging.send(model)
 
-    topic_mock = pubsub_client_mock.return_value.topic
-    publish_mock = topic_mock.return_value.publish
-    topic_mock.assert_called_with('test-topic')
+    publish_mock = pubsub_publisher_client_mock.return_value.publish
     publish_mock.assert_called_with(
+        'test-topic',
         test_utils.EncodedJson({
             "uuid_field": "cd1d3a03-7b04-4a35-97f8-ee5f3eb04c8e",
             "string_field": "Just testing!"
@@ -66,8 +71,7 @@ def test_receive(pubsub_client_mock):
             FancyEvent,
         ],
     })
-    topic_mock = pubsub_client_mock.return_value.topic.return_value
-    subscription_mock = topic_mock.subscription.return_value
+    subscription_mock = pubsub_client_mock.return_value.subscribe.return_value
     mocked_message = mock.MagicMock(
         data=(b'{"uuid_field": "cd1d3a03-7b04-4a35-97f8-ee5f3eb04c8e", '
               b'"string_field": "Just testing!"}'),
@@ -83,7 +87,7 @@ def test_receive(pubsub_client_mock):
 
     envelope = messaging.receive()
 
-    topic_mock.subscription.assert_called_with('test-subscription')
+    pubsub_client_mock.return_value.subscribe.assert_called_with('test-subscription')
     assert envelope.model == FancyEvent(
         uuid_field=uuid.UUID('cd1d3a03-7b04-4a35-97f8-ee5f3eb04c8e'),
         string_field='Just testing!'

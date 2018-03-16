@@ -25,9 +25,9 @@ class TestPubSub:
 
     def test_send(self, publish_mock):
         publish_mock.return_value = '123'
-        client = pubsub.PubSub(topic_name=mock.Mock())
+        client = pubsub.PubSub(topic_name='a-topic')
         result = client.send(message='')
-        publish_mock.assert_called_with(b'')
+        publish_mock.assert_called_with('a-topic', b'')
         assert result == '123'
 
     def test_retrying_send(self, publish_mock):
@@ -71,8 +71,8 @@ def pull_mock(subscription_mock):
 
 
 @pytest.fixture
-def publish_mock(topic_mock):
-    return topic_mock.publish
+def publish_mock(pubsub_publisher_client_mock):
+    return pubsub_publisher_client_mock.return_value.publish
 
 
 @pytest.fixture
@@ -81,18 +81,24 @@ def acknowledge_mock(subscription_mock):
 
 
 @pytest.fixture
-def subscription_mock(topic_mock):
-    return topic_mock.subscription.return_value
+def subscription_mock(pubsub_client_mock):
+    return pubsub_client_mock.return_value.subscribe.return_value
 
 
 @pytest.fixture
-def topic_mock(pubsub_client_mock):
-    return pubsub_client_mock.return_value.topic.return_value
+def topic_mock(pubsub_publisher_client_mock):
+    return pubsub_publisher_client_mock.return_value.publisher
 
 
 @pytest.fixture
 def pubsub_client_mock():
     with mock.patch('google.cloud.pubsub.SubscriberClient') as client:
+        yield client
+
+
+@pytest.fixture
+def pubsub_publisher_client_mock():
+    with mock.patch('google.cloud.pubsub.PublisherClient') as client:
         yield client
 
 

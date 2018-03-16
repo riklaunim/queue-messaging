@@ -60,11 +60,11 @@ class PubSub:
 
     @cached_property
     def topic(self):
-        return self.client.subscriber.topic(self.topic_name)
+        return self.client.publisher
 
     @cached_property
     def subscription(self):
-        return self.topic.subscription(self.subscription_name)
+        return self.client.subscriber.subscribe(self.subscription_name)
 
     @cached_property
     def client(self):
@@ -78,7 +78,7 @@ class PubSub:
     def send(self, message: str, **attributes):
         bytes_payload = message.encode('utf-8')
         try:
-            return self.topic.publish(bytes_payload, **attributes)
+            return self.topic.publish(self.topic_name, bytes_payload, **attributes)
         except google_cloud_exceptions.NotFound as e:
             raise exceptions.PubSubError('Error while sending a message.', error=e)
 
