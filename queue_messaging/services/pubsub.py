@@ -121,13 +121,8 @@ class PubSub:
             self.subscriber.close()
             raise exceptions.PubSubError('Error while pulling a message.', errors=e)
 
-    @retry
-    def acknowledge(self, msg_id):
-        "dead"
-        return self.subscriber.acknowledge([msg_id])
-
     @staticmethod
     def process_message(message, callback):
         return callback(structures.PulledMessage(
-            message=message, data=message.data.decode('utf-8'),
+            ack=message.ack, data=message.data.decode('utf-8'),
             message_id=message.message_id, attributes=message.attributes))

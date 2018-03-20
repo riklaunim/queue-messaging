@@ -21,8 +21,7 @@ class Envelope:
         self._type_to_model = type_to_model
 
     def acknowledge(self):
-        message = self._pulled_message.message
-        message.ack()
+        self._pulled_message.ack()
 
     @cached_property
     def model(self):

@@ -52,19 +52,6 @@ class TestPubSub:
         result = client.send(message='')
         assert result == '123'
 
-    def test_acknowledge(self, acknowledge_mock, pubsub_create_subscription_mock, pubsub_create_topic_mock):
-        client = pubsub.PubSub(topic_name=mock.Mock(), project_id='')
-        client.acknowledge(msg_id='123')
-        acknowledge_mock.assert_called_with(['123'])
-
-    def test_retrying_acknowledge(self, acknowledge_mock, pubsub_create_subscription_mock, pubsub_create_topic_mock):
-        acknowledge_mock.side_effect = [
-            ConnectionResetError, None
-        ]
-        client = pubsub.PubSub(topic_name=mock.Mock(), project_id='')
-        client.acknowledge(msg_id='123')
-        assert acknowledge_mock.call_count == 2
-
     @staticmethod
     def valid_response_factory(*, message_id=1):
         return mock.MagicMock(
