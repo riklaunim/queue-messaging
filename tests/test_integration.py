@@ -39,9 +39,22 @@ def header_timestamp_mock():
         yield now_mock
 
 
-def test_send(header_timestamp_mock, pubsub_publisher_client_mock):
+@pytest.fixture
+def pubsub_create_topic_mock():
+    with mock.patch('queue_messaging.services.pubsub.PubSub._create_topic_if_needed'):
+        yield
+
+
+@pytest.fixture
+def pubsub_create_subscription_mock():
+    with mock.patch('queue_messaging.services.pubsub.PubSub._create_subscription_if_needed'):
+        yield
+
+
+def test_send(header_timestamp_mock, pubsub_publisher_client_mock, pubsub_create_topic_mock):
     messaging = queue_messaging.Messaging.create_from_dict({
         'TOPIC': 'test-topic',
+        'PROJECT_ID': 'p-id',
     })
     model = FancyEvent(
         uuid_field=uuid.UUID('cd1d3a03-7b04-4a35-97f8-ee5f3eb04c8e'),
@@ -54,7 +67,7 @@ def test_send(header_timestamp_mock, pubsub_publisher_client_mock):
 
     publish_mock = pubsub_publisher_client_mock.return_value.publish
     publish_mock.assert_called_with(
-        'test-topic',
+        'projects/p-id/topics/test-topic',
         test_utils.EncodedJson({
             "uuid_field": "cd1d3a03-7b04-4a35-97f8-ee5f3eb04c8e",
             "string_field": "Just testing!"
@@ -64,35 +77,15 @@ def test_send(header_timestamp_mock, pubsub_publisher_client_mock):
     )
 
 
-def test_receive(pubsub_client_mock):
+def test_receive(pubsub_client_mock, pubsub_create_topic_mock, pubsub_create_subscription_mock):
     messaging = queue_messaging.Messaging.create_from_dict({
         'SUBSCRIPTION': 'test-subscription',
         'MESSAGE_TYPES': [
             FancyEvent,
         ],
+        'PROJECT_ID': 'p-id',
     })
     subscription_mock = pubsub_client_mock.return_value.subscribe.return_value
-    mocked_message = mock.MagicMock(
-        data=(b'{"uuid_field": "cd1d3a03-7b04-4a35-97f8-ee5f3eb04c8e", '
-              b'"string_field": "Just testing!"}'),
-        message_id=1,
-        attributes={
-            'timestamp': '2016-12-10T11:15:45.123456Z',
-            'type': 'FancyEvent',
-        }
-    )
-    subscription_mock.pull.return_value = [
-        (123, mocked_message)
-    ]
 
-    envelope = messaging.receive()
-
-    pubsub_client_mock.return_value.subscribe.assert_called_with('test-subscription')
-    assert envelope.model == FancyEvent(
-        uuid_field=uuid.UUID('cd1d3a03-7b04-4a35-97f8-ee5f3eb04c8e'),
-        string_field='Just testing!'
-    )
-
-    envelope.acknowledge()
-
-    subscription_mock.acknowledge.assert_called_with([123])
+    messaging.receive(callback=mock.MagicMock())
+    assert subscription_mock.open.called
