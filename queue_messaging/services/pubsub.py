@@ -1,6 +1,4 @@
-from datetime import timedelta
 import logging
-import time
 
 import tenacity
 from google.cloud import exceptions as google_cloud_exceptions
@@ -10,8 +8,6 @@ from google.gax import errors
 from queue_messaging import exceptions
 from queue_messaging import utils
 from queue_messaging.data import structures
-
-RECEIVE_SLEEP = timedelta(seconds=0)
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +86,7 @@ class PubSub:
 
     @retry
     def send(self, message: str, **attributes):
-        logger.warning('sending message')
+        logger.debug('sending message')
         topic = self._get_topic_path()
         bytes_payload = message.encode('utf-8')
         return self.publisher.publish(topic, bytes_payload, **attributes)
@@ -100,7 +96,7 @@ class PubSub:
 
     @retry
     def receive(self, callback):
-        logger.warning('receive hit')
+        logger.debug('pulling receive message')
         try:
             future = self.subscriber.open(lambda message: self.process_message(message, callback))
         except google_cloud_exceptions.NotFound as e:
@@ -108,12 +104,12 @@ class PubSub:
         else:
             if future:
                 future.result()
-        time.sleep(RECEIVE_SLEEP.total_seconds())
 
     @staticmethod
     def process_message(message, callback):
-        logger.warning('** Processing message')
-        logger.warning(message.data.decode('utf-8'))
-        return callback(structures.PulledMessage(
+        logger.debug('Processing message', extra={
+            'data': message.data.decode('utf-8'), 'message_id': message.message_id
+        })
+        callback(structures.PulledMessage(
             ack=message.ack, data=message.data.decode('utf-8'),
             message_id=message.message_id, attributes=message.attributes))

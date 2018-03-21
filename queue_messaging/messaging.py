@@ -21,6 +21,7 @@ class Envelope:
         self._type_to_model = type_to_model
 
     def acknowledge(self):
+        logger.debug('Message ACK')
         self._pulled_message.ack()
 
     @cached_property
@@ -90,8 +91,10 @@ class Messaging:
         message = self._get_message(model)
         self._send_message(message, attributes)
 
-    def receive(self, callback) -> Envelope:
-        pulled_message = self._pull_message(callback)
+    def receive(self, callback):
+        self._pull_message(lambda message: callback(self._wrap_in_envelope(message)))
+
+    def _wrap_in_envelope(self, pulled_message):
         return Envelope(
             pulled_message=pulled_message,
             client=self._client,
