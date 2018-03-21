@@ -1,6 +1,8 @@
+from datetime import timedelta
+import logging
 import time
+
 import tenacity
-from google.api_core import exceptions as api_exceptions
 from google.cloud import exceptions as google_cloud_exceptions
 from google.cloud import pubsub
 from google.gax import errors
@@ -8,6 +10,10 @@ from google.gax import errors
 from queue_messaging import exceptions
 from queue_messaging import utils
 from queue_messaging.data import structures
+
+RECEIVE_SLEEP = timedelta(seconds=0)
+
+logger = logging.getLogger(__name__)
 
 
 def get_pubsub_client(queue_config):
@@ -76,53 +82,38 @@ class PubSub:
 
     @property
     def _subscriber(self):
-        subscription_name = self._build_subscription_name()
-        topic = self._build_topic_name()
-        self._create_topic_if_needed(topic)
-        self._create_subscription_if_needed(subscription_name, topic)
-        return self.client.subscriber.subscribe(subscription_name)
+        subscription = self._get_subscription_path()
+        return self.client.subscriber.subscribe(subscription)
 
-    def _build_subscription_name(self):
-        return 'projects/{project_id}/subscriptions/{sub}'.format(
-            project_id=self.project_id,
-            sub=self.subscription_name,
-        )
-
-    def _create_subscription_if_needed(self, subscription_name, topic):
-        try:
-            self.client.subscriber.create_subscription(subscription_name, topic)
-        except api_exceptions.AlreadyExists:
-            pass
+    def _get_subscription_path(self):
+        return self.client.subscriber.subscription_path(self.project_id, self.subscription_name)
 
     @retry
     def send(self, message: str, **attributes):
-        topic = self._build_topic_name()
-        self._create_topic_if_needed(topic)
+        logger.warning('sending message')
+        topic = self._get_topic_path()
         bytes_payload = message.encode('utf-8')
         return self.publisher.publish(topic, bytes_payload, **attributes)
 
-    def _build_topic_name(self):
-        return 'projects/{project_id}/topics/{topic}'.format(
-            project_id=self.project_id,
-            topic=self.topic_name
-        )
-
-    def _create_topic_if_needed(self, topic):
-        try:
-            self.publisher.create_topic(topic)
-        except api_exceptions.AlreadyExists:
-            pass
+    def _get_topic_path(self):
+        return self.client.publisher.topic_path(self.project_id, self.topic_name)
 
     @retry
     def receive(self, callback):
+        logger.warning('receive hit')
         try:
-            self.subscriber.open(lambda message: self.process_message(message, callback))
+            future = self.subscriber.open(lambda message: self.process_message(message, callback))
         except google_cloud_exceptions.NotFound as e:
-            self.subscriber.close()
             raise exceptions.PubSubError('Error while pulling a message.', errors=e)
+        else:
+            if future:
+                future.result()
+        time.sleep(RECEIVE_SLEEP.total_seconds())
 
     @staticmethod
     def process_message(message, callback):
+        logger.warning('** Processing message')
+        logger.warning(message.data.decode('utf-8'))
         return callback(structures.PulledMessage(
             ack=message.ack, data=message.data.decode('utf-8'),
             message_id=message.message_id, attributes=message.attributes))

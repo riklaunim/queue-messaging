@@ -7,7 +7,7 @@ from queue_messaging.services import pubsub
 
 
 class TestPubSub:
-    def test_receive(self, pull_mock, pubsub_create_subscription_mock, pubsub_create_topic_mock):
+    def test_receive(self, pull_mock):
         def callback(message):
             assert message.message_id == 1
 
@@ -16,7 +16,7 @@ class TestPubSub:
         client = pubsub.PubSub(topic_name=mock.Mock(), project_id='')
         client.receive(callback=callback)
 
-    def test_assert_in_receive_callback(self, pull_mock, pubsub_create_subscription_mock, pubsub_create_topic_mock):
+    def test_assert_in_receive_callback(self, pull_mock):
         def callback(message):
             assert message.message_id == 0
 
@@ -26,7 +26,7 @@ class TestPubSub:
         client = pubsub.PubSub(topic_name=mock.Mock(), project_id='')
         client.receive(callback=callback)
 
-    def test_retrying_receive(self, pull_mock, pubsub_create_subscription_mock, pubsub_create_topic_mock):
+    def test_retrying_receive(self, pull_mock):
         def callback(message):
             assert message.message_id == 1
 
@@ -37,14 +37,15 @@ class TestPubSub:
         client = pubsub.PubSub(topic_name=mock.Mock(), project_id='')
         client.receive(callback=callback)
 
-    def test_send(self, publish_mock, pubsub_create_topic_mock):
+    def test_send(self, publish_mock, topic_path_mock):
         publish_mock.return_value = '123'
+        topic_path_mock.return_value = 'projects/p_id/topics/a-publisher'
         client = pubsub.PubSub(topic_name='a-publisher', project_id='p_id')
         result = client.send(message='')
         publish_mock.assert_called_with('projects/p_id/topics/a-publisher', b'')
         assert result == '123'
 
-    def test_retrying_send(self, publish_mock, pubsub_create_topic_mock):
+    def test_retrying_send(self, publish_mock):
         publish_mock.side_effect = [
             ConnectionResetError, '123'
         ]
@@ -68,6 +69,11 @@ class TestPubSub:
 @pytest.fixture
 def pull_mock(subscription_mock):
     return subscription_mock.open
+
+
+@pytest.fixture
+def topic_path_mock(pubsub_publisher_client_mock):
+    return pubsub_publisher_client_mock.return_value.topic_path
 
 
 @pytest.fixture
@@ -100,18 +106,6 @@ def pubsub_client_mock():
 def pubsub_publisher_client_mock():
     with mock.patch('google.cloud.pubsub.PublisherClient') as client:
         yield client
-
-
-@pytest.fixture
-def pubsub_create_topic_mock():
-    with mock.patch('queue_messaging.services.pubsub.PubSub._create_topic_if_needed'):
-        yield
-
-
-@pytest.fixture
-def pubsub_create_subscription_mock():
-    with mock.patch('queue_messaging.services.pubsub.PubSub._create_subscription_if_needed'):
-        yield
 
 
 class TestRetry:

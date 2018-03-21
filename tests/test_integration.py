@@ -34,24 +34,19 @@ def pubsub_publisher_client_mock():
 
 
 @pytest.fixture()
+def topic_path_mock():
+    with mock.patch('queue_messaging.services.pubsub.PubSub._get_topic_path') as path:
+        yield path
+
+
+@pytest.fixture()
 def header_timestamp_mock():
     with mock.patch('queue_messaging.data.encoding.get_now_with_utc_timezone') as now_mock:
         yield now_mock
 
 
-@pytest.fixture
-def pubsub_create_topic_mock():
-    with mock.patch('queue_messaging.services.pubsub.PubSub._create_topic_if_needed'):
-        yield
-
-
-@pytest.fixture
-def pubsub_create_subscription_mock():
-    with mock.patch('queue_messaging.services.pubsub.PubSub._create_subscription_if_needed'):
-        yield
-
-
-def test_send(header_timestamp_mock, pubsub_publisher_client_mock, pubsub_create_topic_mock):
+def test_send(header_timestamp_mock, pubsub_publisher_client_mock, topic_path_mock):
+    topic_path_mock.return_value = 'projects/p-id/topics/test-topic'
     messaging = queue_messaging.Messaging.create_from_dict({
         'TOPIC': 'test-topic',
         'PROJECT_ID': 'p-id',
@@ -66,6 +61,7 @@ def test_send(header_timestamp_mock, pubsub_publisher_client_mock, pubsub_create
     messaging.send(model)
 
     publish_mock = pubsub_publisher_client_mock.return_value.publish
+    publish_mock.topic_path.return_value = 'z'
     publish_mock.assert_called_with(
         'projects/p-id/topics/test-topic',
         test_utils.EncodedJson({
@@ -77,7 +73,7 @@ def test_send(header_timestamp_mock, pubsub_publisher_client_mock, pubsub_create
     )
 
 
-def test_receive(pubsub_client_mock, pubsub_create_topic_mock, pubsub_create_subscription_mock):
+def test_receive(pubsub_client_mock):
     messaging = queue_messaging.Messaging.create_from_dict({
         'SUBSCRIPTION': 'test-subscription',
         'MESSAGE_TYPES': [
