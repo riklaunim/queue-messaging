@@ -1,10 +1,37 @@
-Changelog for kubepy
+Changelog for queue-messaging
 =================
 
-0.2.1 (unreleased)
+0.3.4 (unreleased)
 ------------------
 
 - Nothing changed yet.
+
+
+0.3.3 (2018-07-12)
+------------------
+
+- Lock google-cloud-pubsub below version 0.35 ([#9](https://github.com/socialwifi/queue-messaging/issues/9))
+
+
+0.3.2 (2018-07-12)
+------------------
+
+- Revert freezing requirements, the original problem seems to be gone.
+
+
+0.3.1 (2018-07-09)
+------------------
+
+- Freeze versions of required packages.
+
+
+0.3.0 (2018-06-29)
+------------------
+- Backward incompatible update for latest google-cloud-pubsub compatiblity.
+   - PubSub message pulling becomes asynchronous
+   - messaging.receive instead of returning an Envelope with message now takes a callback to be called on Envelope
+   - google-cloud-pubsub will manage sleeping when pulling for new messages on its own
+   - Google Cloud project id is now required for pubsub configuration
 
 
 0.2 (2017-05-17)

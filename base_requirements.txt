@@ -1,7 +1,6 @@
 cached_property
-google-cloud-pubsub>=0.32.1
-google-gax
 google-cloud-core
+google-cloud-pubsub>=0.32.1,<0.35
 marshmallow
 netaddr
 tenacity

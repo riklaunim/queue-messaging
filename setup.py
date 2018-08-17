@@ -1,13 +1,16 @@
-from pip.req import parse_requirements
+try:
+    from pip._internal.req import parse_requirements
+except ImportError:
+    from pip.req import parse_requirements
 from setuptools import setup
 from setuptools import find_packages
 
 
 setup(
     name='queue-messaging',
-    version='0.2.1.dev0',
+    version='0.3.4.dev0',
     description='Python queue messaging library.',
-    author='Jakub Trochim',
+    author='Social WiFi',
     author_email='it@socialwifi.com',
     url='https://github.com/socialwifi/queue-messaging',
     packages=find_packages(exclude=['tests']),
