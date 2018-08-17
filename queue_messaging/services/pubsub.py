@@ -67,7 +67,6 @@ class PubSub:
         else:
             return self.client.publisher
 
-    @property
     def subscriber(self, callback):
         if self.pubsub_emulator_host:
             with utils.EnvironmentContext('PUBSUB_EMULATOR_HOST', self.pubsub_emulator_host):
