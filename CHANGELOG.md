@@ -1,10 +1,22 @@
 Changelog for queue-messaging
 =================
 
-0.3.4 (unreleased)
+0.3.6 (unreleased)
 ------------------
 
 - Nothing changed yet.
+
+
+0.3.5 (2018-12-12)
+------------------
+
+- Fix memory leak in pubsub client ([#11](https://github.com/socialwifi/queue-messaging/pull/11))
+
+
+0.3.4 (2018-08-17)
+------------------
+
+- Support newest google-cloud-pubsub ([#10](https://github.com/socialwifi/queue-messaging/pull/10))
 
 
 0.3.3 (2018-07-12)
